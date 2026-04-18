@@ -15,17 +15,6 @@ INTERNAL_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
 st.set_page_config(page_title="Academia IA Pro - UNSA", page_icon="🏫", layout="wide")
 
-# Ocultar elementos de la interfaz de Streamlit
-hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            .stAppDeployButton {display:none;}
-            </style>
-            """
-st.markdown(hide_st_style, unsafe_allow_html=True)
-
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 
