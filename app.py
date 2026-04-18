@@ -1,3 +1,10 @@
+st.markdown("""
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    </style>
+    """, unsafe_allow_stdio=True)
 import streamlit as st
 import os
 import re
