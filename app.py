@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 import re
-import glob
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -9,9 +8,10 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import TextLoader
 
 # ==========================================
-# CAPA 1: SEGURIDAD INTERNA Y ACCESO (MÉTODO SECRETS)
+# CAPA 1: SEGURIDAD INTERNA Y ACCESO
 # ==========================================
 INTERNAL_API_KEY = st.secrets["GOOGLE_API_KEY"] 
+ADMIN_PASSWORD = "TuPasswordSeguro123" # Cambia esto por tu contraseña real
 
 st.set_page_config(page_title="Academia IA Pro - UNSA", page_icon="🏫", layout="wide")
 
@@ -20,29 +20,20 @@ if "autenticado" not in st.session_state:
 
 if not st.session_state.autenticado:
     st.title("🔐 Acceso a la Academia Virtual UNSA")
-    password_input = st.text_input("Introduce tu código de alumno:", type="password")
-    
+    password_input = st.text_input("Introduce la contraseña de alumno:", type="password")
     if st.button("Entrar"):
-        # Comprueba si la contraseña ingresada está en la lista de contraseñas secretas
-        # Se asume que en Streamlit Secrets creaste una sección [alumnos]
-        try:
-            contraseñas_validas = list(st.secrets["alumnos"].values())
-            if password_input in contraseñas_validas:
-                st.session_state.autenticado = True
-                st.rerun()
-            else:
-                st.error("Código incorrecto o inactivo. Contacta con coordinación.")
-        except KeyError:
-            st.error("Error de servidor: No se ha configurado la base de datos de alumnos en Streamlit Secrets.")
+        if password_input == ADMIN_PASSWORD:
+            st.session_state.autenticado = True
+            st.rerun()
+        else:
+            st.error("Contraseña incorrecta. Contacta con coordinación.")
     st.stop()
 
-# --- MENSAJE DISUASORIO (Visible siempre en el menú lateral) ---
-st.sidebar.warning("⚠️ El sistema detecta accesos simultáneos. No compartas tu código.")
-
 # ==========================================
-# CAPA 2: SANITIZACIÓN DE ENTRADA
+# CAPA 2: SANITIZACIÓN DE ENTRADA (NUEVO)
 # ==========================================
 def validar_consulta_educativa(texto):
+    # Patrones para evitar hackeos del prompt
     patrones_bloqueo = [
         r'ignora.*instrucciones', r'actúa como', r'olvida.*anterior',
         r'revela.*sistema', r'sal.*modo', r'prompt.*original'
@@ -52,24 +43,26 @@ def validar_consulta_educativa(texto):
     return True, texto
 
 # ==========================================
-# CAPA 3: MULTI-PROFESOR AUTOMÁTICO
+# CAPA 3: MULTI-PROFESOR (BASE DE DATOS)
 # ==========================================
 st.sidebar.title("👨‍🏫 Panel de Preparación")
+materia = st.sidebar.selectbox(
+    "Selecciona tu Profesor:",
+    ["Álgebra", "Aritmética", "Física"]
+)
 
-# AUTO-DETECTOR DE CURSOS: Busca todos los .txt y excluye requirements.txt
-archivos_txt = [f for f in glob.glob("*.txt") if f != "requirements.txt"]
-archivos_materias = {os.path.splitext(f)[0].capitalize(): f for f in archivos_txt}
-lista_materias = list(archivos_materias.keys())
-
-if not lista_materias:
-    st.error("No se encontraron archivos de texto para los cursos. Sube tus .txt a GitHub.")
-    st.stop()
-
-materia = st.sidebar.selectbox("Selecciona tu Profesor:", lista_materias)
+archivos_materias = {
+    "Álgebra": "algebra.txt",
+    "Aritmética": "aritmetica.txt",
+    "Física": "fisica.txt"
+}
 
 @st.cache_resource
 def cargar_profesor(nombre_materia):
     archivo = archivos_materias[nombre_materia]
+    if not os.path.exists(archivo):
+        return None
+    
     loader = TextLoader(archivo, encoding="utf-8")
     docs = loader.load()
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -83,19 +76,11 @@ vector_db = cargar_profesor(materia)
 # ==========================================
 # CAPA 4: CHAT Y CEREBRO PEDAGÓGICO MAESTRO
 # ==========================================
-# Manejo del cambio de profesor: limpiar la memoria si el alumno cambia de curso
-if "materia_actual" not in st.session_state:
-    st.session_state.materia_actual = materia
-
-if st.session_state.materia_actual != materia:
-    st.session_state.messages = []  # Borra el chat anterior
-    st.session_state.materia_actual = materia
-
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 st.title(f"🏫 Preparación Intensiva: {materia}")
-st.info(f"¡Hola! Soy tu profesor estratega de {materia} 🛠️. Tenemos una vacante de Ingeniería que asegurar en la UNSA. ¿En qué tema nos quedamos ayer o por dónde empezamos a destruir el temario hoy?")
+st.info("Objetivo: Asegurar tu vacante en Ingeniería UNSA. ¿Comenzamos?")
 
 # Mostrar historial
 for message in st.session_state.messages:
@@ -105,6 +90,7 @@ for message in st.session_state.messages:
 # Entrada de usuario
 if prompt := st.chat_input("Escribe tu duda o formula tu respuesta a los retos..."):
     
+    # 1. PASAMOS EL FILTRO DE SEGURIDAD
     es_valido, mensaje_seguro = validar_consulta_educativa(prompt)
     
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -113,9 +99,11 @@ if prompt := st.chat_input("Escribe tu duda o formula tu respuesta a los retos..
 
     with st.chat_message("assistant"):
         if not es_valido:
+            # Si el filtro detecta trampa, corta la ejecución aquí
             st.warning(mensaje_seguro)
             st.session_state.messages.append({"role": "assistant", "content": mensaje_seguro})
         elif vector_db:
+            # Si es válido, procedemos con RAG y el Prompt Maestro
             docs = vector_db.similarity_search(prompt, k=3)
             contexto = "\n\n".join([d.page_content for d in docs])
             
@@ -153,21 +141,16 @@ if prompt := st.chat_input("Escribe tu duda o formula tu respuesta a los retos..
                 temperature=0.3
             )
             
+            # Pasamos todo el historial de la conversación para que el bot tenga memoria
+            # y sepa cuando el alumno está respondiendo a los Retos de Entrenamiento
             historial_formateado = [("system", instrucciones_maestras)]
-            for msg in st.session_state.messages[-5:]: 
+            for msg in st.session_state.messages[-5:]: # Solo recordamos los últimos 5 mensajes para no saturar tokens
                 role = "human" if msg["role"] == "user" else "ai"
                 historial_formateado.append((role, msg["content"]))
                 
             respuesta = llm.invoke(historial_formateado)
             
-            # --- CORRECCIÓN DEL BUG DEL TEXTO EN CRUDO ---
-            texto_final = ""
-            if isinstance(respuesta.content, list):
-                texto_final = respuesta.content[0].get("text", "")
-            elif isinstance(respuesta.content, str):
-                texto_final = respuesta.content
-            else:
-                texto_final = str(respuesta.content)
-            
-            st.markdown(texto_final)
-            st.session_state.messages.append({"role": "assistant", "content": texto_final})
+            st.markdown(respuesta.content)
+            st.session_state.messages.append({"role": "assistant", "content": respuesta.content})
+        else:
+            st.error(f"El módulo de {materia} no está cargado en el sistema.")
