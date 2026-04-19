@@ -6,41 +6,72 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import TextLoader
+from langchain_community.document_loaders import TextLoader, PyPDFLoader # <- INYECTADO: Soporte PDF
 
 # ==========================================
-# CAPA 1: SEGURIDAD INTERNA Y ACCESO (MÉTODO SECRETS)
+# CAPA 1: CONFIGURACIÓN E INTERFAZ (MEJORADA)
 # ==========================================
 INTERNAL_API_KEY = st.secrets["GOOGLE_API_KEY"] 
 
-st.set_page_config(page_title="Academia IA Pro - UNSA", page_icon="🏫", layout="wide")
+# INYECTADO: initial_sidebar_state="expanded" para evitar que la bandeja desaparezca
+st.set_page_config(page_title="Academia IA Pro - UNSA", page_icon="🏫", layout="wide", initial_sidebar_state="expanded")
 
+# Ocultar elementos de la interfaz de Streamlit + Ocultar "Manage app"
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            .stAppDeployButton {display:none;}
+            button[title="Manage app"] {display: none !important;} /* Oculta botón admin */
+            /* Clases para centrar el login y hacerlo agradable */
+            .login-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                margin-top: 50px;
+                text-align: center;
+            }
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
+# ==========================================
+# CAPA 2: SEGURIDAD INTERNA Y ACCESO (LOGIN CENTRADO)
+# ==========================================
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 
 if not st.session_state.autenticado:
-    st.title("🔐 Acceso a la Academia Virtual UNSA")
-    password_input = st.text_input("Introduce tu código de alumno:", type="password")
-    
-    if st.button("Entrar"):
-        # Comprueba si la contraseña ingresada está en la lista de contraseñas secretas
-        # Se asume que en Streamlit Secrets creaste una sección [alumnos]
-        try:
-            contraseñas_validas = list(st.secrets["alumnos"].values())
-            if password_input in contraseñas_validas:
-                st.session_state.autenticado = True
-                st.rerun()
-            else:
-                st.error("Código incorrecto o inactivo. Contacta con coordinación.")
-        except KeyError:
-            st.error("Error de servidor: No se ha configurado la base de datos de alumnos en Streamlit Secrets.")
+    # INYECTADO: Interfaz de login centrada y más agradable
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
+        st.title("🔐 Academia Virtual UNSA")
+        st.write("Bienvenido al sistema de preparación de alto rendimiento para Ingeniería.")
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        password_input = st.text_input("Introduce tu código de alumno:", type="password")
+        
+        # INYECTADO: Mensaje disuasorio colocado estratégicamente en el login
+        st.warning("⚠️ El sistema detecta accesos simultáneos. No compartas tu código.")
+        
+        if st.button("Entrar", use_container_width=True):
+            try:
+                contraseñas_validas = list(st.secrets["alumnos"].values())
+                if password_input in contraseñas_validas:
+                    st.session_state.autenticado = True
+                    st.rerun()
+                else:
+                    st.error("Código incorrecto o inactivo. Contacta con coordinación.")
+            except KeyError:
+                st.error("Error de servidor: No se ha configurado la base de datos de alumnos en Streamlit Secrets.")
+        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# --- MENSAJE DISUASORIO (Visible siempre en el menú lateral) ---
-st.sidebar.warning("⚠️ El sistema detecta accesos simultáneos. No compartas tu código.")
-
 # ==========================================
-# CAPA 2: SANITIZACIÓN DE ENTRADA
+# CAPA 3: SANITIZACIÓN DE ENTRADA
 # ==========================================
 def validar_consulta_educativa(texto):
     patrones_bloqueo = [
@@ -52,17 +83,18 @@ def validar_consulta_educativa(texto):
     return True, texto
 
 # ==========================================
-# CAPA 3: MULTI-PROFESOR AUTOMÁTICO
+# CAPA 4: MULTI-PROFESOR AUTOMÁTICO (TXT Y PDF)
 # ==========================================
 st.sidebar.title("👨‍🏫 Panel de Preparación")
 
-# AUTO-DETECTOR DE CURSOS: Busca todos los .txt y excluye requirements.txt
-archivos_txt = [f for f in glob.glob("*.txt") if f != "requirements.txt"]
-archivos_materias = {os.path.splitext(f)[0].capitalize(): f for f in archivos_txt}
+# INYECTADO: Busca automáticamente tanto .txt como .pdf
+archivos_encontrados = glob.glob("*.txt") + glob.glob("*.pdf")
+archivos_materias = {os.path.splitext(f)[0].capitalize(): f for f in archivos_encontrados if f != "requirements.txt"}
 lista_materias = list(archivos_materias.keys())
 
 if not lista_materias:
-    st.error("No se encontraron archivos de texto para los cursos. Sube tus .txt a GitHub.")
+    st.sidebar.error("❌ No hay cursos disponibles.")
+    st.error("No se encontraron archivos (.txt o .pdf) para los cursos. Súbelos a GitHub.")
     st.stop()
 
 materia = st.sidebar.selectbox("Selecciona tu Profesor:", lista_materias)
@@ -70,7 +102,13 @@ materia = st.sidebar.selectbox("Selecciona tu Profesor:", lista_materias)
 @st.cache_resource
 def cargar_profesor(nombre_materia):
     archivo = archivos_materias[nombre_materia]
-    loader = TextLoader(archivo, encoding="utf-8")
+    
+    # INYECTADO: Discriminador de tipo de archivo para cargar PDF o TXT sin fallas
+    if archivo.endswith(".pdf"):
+        loader = PyPDFLoader(archivo)
+    else:
+        loader = TextLoader(archivo, encoding="utf-8")
+        
     docs = loader.load()
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     chunks = splitter.split_documents(docs)
@@ -81,9 +119,8 @@ def cargar_profesor(nombre_materia):
 vector_db = cargar_profesor(materia)
 
 # ==========================================
-# CAPA 4: CHAT Y CEREBRO PEDAGÓGICO MAESTRO
+# CAPA 5: CHAT Y CEREBRO PEDAGÓGICO MAESTRO
 # ==========================================
-# Manejo del cambio de profesor: limpiar la memoria si el alumno cambia de curso
 if "materia_actual" not in st.session_state:
     st.session_state.materia_actual = materia
 
