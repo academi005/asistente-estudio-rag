@@ -17,13 +17,14 @@ INTERNAL_API_KEY = st.secrets["GOOGLE_API_KEY"]
 st.set_page_config(page_title="Academia IA Pro - UNSA", page_icon="🏫", layout="wide", initial_sidebar_state="expanded")
 
 # Ocultar elementos de la interfaz de Streamlit + Ocultar "Manage app"
+# CSS Avanzado para estética y ocultar elementos de desarrollo
 hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
-            header {visibility: hidden;}
             .stAppDeployButton {display:none;}
-            button[title="Manage app"] {display: none !important;} /* Oculta botón admin */
+            #stDecoration {display:none;}
+            
             /* Clases para centrar el login y hacerlo agradable */
             .login-container {
                 display: flex;
@@ -33,6 +34,10 @@ hide_st_style = """
                 margin-top: 50px;
                 text-align: center;
             }
+            
+            /* Ocultar botón Manage App para alumnos sin romper el header */
+            button[title="Manage app"] {display: none !important;}
+            .st-emotion-cache-1wbqy5l {display: none !important;}
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
