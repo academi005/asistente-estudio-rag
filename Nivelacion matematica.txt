@@ -1,0 +1,40 @@
+El Sistema de "Niveles de Construcción"
+Para que un alumno no se sienta perdido, divide los temas en una jerarquía donde no se puede subir al siguiente piso sin cimientos sólidos.
+Bloque A: El Alfabeto Numérico (Cimientos)
+Antes de ver una $x$, el alumno debe dominar la aritmética mental y lógica.
+•	Jerarquía de Operaciones (PEMDAS): Es el error #1. Deben entender por qué una multiplicación va antes que una suma.
+•	Fracciones "Sin Miedo": No solo la "oreja" o "carita feliz", sino entender el concepto de partes de un todo.
+•	Ley de Signos Dinámica: Practicarla hasta que sea un reflejo, no algo que tengan que pensar.
+Bloque B: El Puente al Álgebra (Transición)
+Aquí es donde muchos tiran la toalla. La clave es la traducción.
+•	Lenguaje Algebraico: Enseñar a pasar de "el doble de un número más tres" a $2x + 3$.
+•	Leyes de Exponentes: Enfócate en las tres básicas (producto, cociente y potencia de potencia).
+•	Despejes Progresivos: Empieza con $x + a = b$ y termina con $\frac{ax + b}{c} = d$.
+Bloque C: Geometría y Visualización
+La geometría ayuda a los alumnos "visuales" a entender el álgebra.
+•	Pitágoras y Triángulos Notables: Son fijos en cualquier examen de admisión.
+•	Perímetros y Áreas: Relacionar el área con la multiplicación de polinomios (ej. el área de un rectángulo de lados $x$ y $x+2$).
+________________________________________
+2. Estrategia Pedagógica: Calidad > Cantidad
+La Regla del 80/20 en Clase
+•	20% Explicación: No hables más de 10-15 minutos seguidos.
+•	80% Práctica guiada: El alumno debe tener el lápiz en la mano la mayor parte del tiempo.
+El Método de la "Caja de Herramientas"
+En lugar de memorizar 20 fórmulas de productos notables, enséñales a identificar cuándo usar las 3 principales:
+1.	Binomio al cuadrado: $(a + b)^2$
+2.	Diferencia de cuadrados: $(a + b)(a - b)$
+3.	Binomio al cubo: (Solo si van a ingenierías o áreas de biomédicas).
+El Enfoque de "Ingeniería Inversa"
+Muchos exámenes de admisión se pueden resolver probando las alternativas. Enseña a tus alumnos que, si están trabados en una ecuación compleja, a veces es más rápido reemplazar las opciones en la $x$ para ver cuál cumple la igualdad. Esto les da seguridad y velocidad.
+________________________________________
+3. Mejora Continua y Escalabilidad
+Para que tu tutoría crezca y los alumnos no se estanquen:
+•	Mini-Evaluaciones de Diagnóstico: Al inicio de cada sesión, haz 2 ejercicios del tema anterior. Si fallan, no avances. Es mejor saber 3 temas a la perfección que 10 a medias.
+•	Uso de Analogías: Si el álgebra se pone pesada, vuelve a las "peras y manzanas" o a ejemplos de dinero/deudas para explicar números negativos.
+•	Introducción al "Nivel Pro": Una vez que dominen lo básico, introduce suavemente conceptos de Ecuaciones de Segundo Grado (discriminante) y Funciones, que son los temas que suelen definir el ingreso en exámenes competitivos.
+________________________________________
+4. Cuadro de Prioridades para el Tutor
+Si el alumno tiene...	Enfócate en...	Objetivo
+Muchos vacíos	Aritmética y Ley de Signos	Quitar el miedo a los números.
+Base regular	Productos Notables y Despejes	Ganar agilidad algebraica.
+Buen nivel	Funciones y Logaritmos	Asegurar puntos en temas complejos.
