@@ -3,11 +3,11 @@ import os
 import re
 import glob
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_google_genai import ChatGoogleGenerativeAI
+# Agrupamos los 3 en una sola línea:
+from langchain_google_genai import ChatGoogleGenerativeAI, HarmCategory, HarmBlockThreshold
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
-
 # ==========================================
 # CAPA 1: CONFIGURACIÓN E INTERFAZ
 # ==========================================
@@ -210,10 +210,17 @@ if prompt := st.chat_input("Escribe tu duda o formula tu respuesta a los retos..
             "¿Tienes alguna duda, quieres intentar resolver los retos por tu cuenta, o pasamos al siguiente tema?"
             """
 
+           # --- CONFIGURACIÓN DE IA CON FILTROS RELAJADOS (Para evitar bloqueos en RV) ---
             llm = ChatGoogleGenerativeAI(
                 model="gemini-3-flash-preview", 
                 google_api_key=INTERNAL_API_KEY,
-                temperature=0.3
+                temperature=0.3,
+                safety_settings={
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                }
             )
             
             historial_formateado = [("system", instrucciones_maestras)]
@@ -221,15 +228,26 @@ if prompt := st.chat_input("Escribe tu duda o formula tu respuesta a los retos..
                 role = "human" if msg["role"] == "user" else "ai"
                 historial_formateado.append((role, msg["content"]))
                 
-            respuesta = llm.invoke(historial_formateado)
+            # --- SALVAVIDAS ANTI-COLAPSO DE API ---
+            try:
+                respuesta = llm.invoke(historial_formateado)
+                
+                texto_final = ""
+                if isinstance(respuesta.content, list):
+                    texto_final = respuesta.content[0].get("text", "")
+                elif isinstance(respuesta.content, str):
+                    texto_final = respuesta.content
+                else:
+                    texto_final = str(respuesta.content)
+                
+                st.markdown(texto_final)
+                st.session_state.messages.append({"role": "assistant", "content": texto_final})
+                
+            except Exception as e:
+                mensaje_error = str(e).lower()
+                if "429" in mensaje_error or "quota" in mensaje_error or "exhausted" in mensaje_error:
+                    st.warning("⏳ ¡Wow, la clase está llena! El profesor está atendiendo a muchos alumnos al mismo tiempo. Por favor, espera unos 15 segundos y vuelve a enviar tu pregunta.")
+                else:
+                    st.error("⚠️ El servidor del profesor tuvo un pequeño tropiezo procesando tu documento. Por favor, intenta preguntar de nuevo en un momento.")
             
-            texto_final = ""
-            if isinstance(respuesta.content, list):
-                texto_final = respuesta.content[0].get("text", "")
-            elif isinstance(respuesta.content, str):
-                texto_final = respuesta.content
-            else:
-                texto_final = str(respuesta.content)
-            
-            st.markdown(texto_final)
-            st.session_state.messages.append({"role": "assistant", "content": texto_final})
+            # (El código termina aquí. Ya no hay más líneas duplicadas debajo del except)
